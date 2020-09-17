@@ -1,0 +1,237 @@
+#!/usr/bin/perl 
+
+# Copyright 2019 Magnus Enger Libriotech
+
+=head1 NAME
+
+navet2koha.pl - Syncronize patron data from Navet to Koha.
+
+=head1 SYNOPSIS
+
+ sudo PERL5LIB=/usr/share/koha/lib/ KOHA_CONF=/etc/koha/sites/mykoha/koha-conf.xml perl my_script.pl --configfile /path/to/config.yaml -v
+
+=head1 NON-STANDARD DEPENDENCIES
+
+  sudo cpanm Se::PersonNr
+
+=head1 SAMPLE DATA
+
+This is an example of data returned from the API:
+
+  <?xml version='1.0' encoding='UTF-8'?>
+  <S:Envelope xmlns:S="http://schemas.xmlsoap.org/soap/envelope/">
+    <S:Body>
+      <ns0:PersonpostXMLResponse 
+        xmlns:ns1="http://www.skatteverket.se/folkbokforing/na/personpostXML/v2" 
+        xmlns:ns0="http://xmls.skatteverket.se/se/skatteverket/folkbokforing/na/epersondata/V1">
+        <ns0:Folkbokforingsposter>
+          <Folkbokforingspost>
+            <Arendeuppgift andringstidpunkt="20200406121712"/>
+            <Personpost>
+              <PersonId>
+                <PersonNr>************</PersonNr>
+              </PersonId>
+              <Namn>
+                <Tilltalsnamnsmarkering>10</Tilltalsnamnsmarkering>
+                <Fornamn>Medel</Fornamn>
+                <Efternamn>Svensson</Efternamn>
+              </Namn>
+              <Adresser>
+                <Folkbokforingsadress>
+                  <Utdelningsadress2>KUNGSGATAN 1</Utdelningsadress2>
+                  <PostNr>64136</PostNr>
+                  <Postort>KATRINEHOLM</Postort>
+                </Folkbokforingsadress>
+                <UUID>
+                  <Fastighet>...</Fastighet>
+                  <Adress>...</Adress>
+                  <Lagenhet>...</Lagenhet>
+                </UUID>
+              </Adresser>
+            </Personpost>
+          </Folkbokforingspost>
+        </ns0:Folkbokforingsposter>
+      </ns0:PersonpostXMLResponse>
+    </S:Body>
+  </S:Envelope>
+
+=cut
+
+# use SOAP::Lite ( +trace => 'all', readable => 1, outputxml => 1, );
+use Navet::ePersondata::Personpost;
+use Se::PersonNr;
+use Getopt::Long;
+use Data::Dumper;
+$Data::Dumper::Sortkeys = 1;
+use Template;
+use DateTime;
+use YAML::Syck;
+use Pod::Usage;
+use Modern::Perl;
+binmode STDOUT, ":utf8";
+
+use C4::Members::Attributes;
+use Koha::Patrons;
+
+my $dt = DateTime->now;
+my $date = $dt->ymd;
+
+# Get options
+my ( $borrowernumbers, $configfile, $limit, $verbose, $debug ) = get_options();
+
+# Get the config from file and add verbose and debug to it
+if ( !-e $configfile ) { die "The file $configfile does not exist..."; }
+my $config = LoadFile( $configfile );
+$config->{'verbose'} = $verbose;
+$config->{'debug'}   = $debug;
+
+my $ep = Navet::ePersondata::Personpost->new(
+    # Set proxy to test service instead of production 
+#    soap_options => {
+#        proxy => 'https://www2.test.skatteverket.se/na/na_epersondata/V2/personpostXML'
+#    },
+    pkcs12_file     => $config->{ 'pkcs12_file' },
+    pkcs12_password => $config->{ 'pkcs12_password' },
+    OrgNr           => $config->{ 'OrgNr' },
+    BestallningsId  => $config->{ 'BestallningsId' },
+);
+
+my @borrowers_ok;
+
+# Turn a list of borrowernumbers into a list of borrowers
+if ( $borrowernumbers ) {
+    my @borrnums = split /,/, $borrowernumbers;
+    BORRNUM: foreach my $borrowernumber ( @borrnums ) {
+        say "*** Looking at borrowernumber=$borrowernumber ***" if $config->{'verbose'};
+        my $patron = Koha::Patrons->find({ borrowernumber => $borrowernumber });
+        unless ( $patron ) {
+            say "Patron not found for borrowernumber=$borrowernumber" if $config->{'verbose'};
+            next BORRNUM;
+        }
+        # my $socsec = $patron->extended_attributes( $config->{ 'socsec_attribute' } );
+        # say Dumper $patron->get_extended_attribute( $config->{ 'socsec_attribute' } )->attribute;
+        my $socsec = C4::Members::Attributes::GetBorrowerAttributeValue( $borrowernumber, $config->{ 'socsec_attribute' } );
+        # Check that we have a social security number that looks ok
+        if ( $socsec ) {
+            say "Going to consider $socsec" if $config->{'verbose'};
+            if ( length $socsec != 12 ) {
+                say "FAIL Wrong length: $socsec";
+                next BORRNUM;
+            }
+            my $pnr = new Se::PersonNr( $socsec );
+            if ( $pnr->is_valid() ) {
+                say "OK";
+                push @borrowers_ok, $patron;
+            } else {
+                say "FAIL Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")";
+            }
+        } else {
+            say "FAIL SocSec not found";
+        }
+    }
+}
+
+foreach my $borrower ( @borrowers_ok ) {
+
+    my $socsec = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'socsec_attribute' } );
+    my $node = $ep->find_first({ PersonId => $socsec });
+
+    if ( my $err = $ep->error) {
+        say "Error:";
+        say 'message: ' .          $err->{message};          # error text
+        say 'soap_faultcode: ' .   $err->{soap_faultcode};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
+        say 'soap_faultstring: ' . $err->{soap_faultstring}; # SOAP faultstring from /Envelope/BodyFault/faultstring
+        say 'sv_Felkod: ' .        $err->{sv_Felkod};        # Extra error code provided by Skatteverket
+        say 'sv_Beskrivning: ' .   $err->{sv_Beskrivning};   # Extra description provided by Skatteverket
+        say 'raw_error: ' .        $err->{raw_error};        # Unparsed error text (can be XML, HTML or plain text)
+        say 'https_status: ' .     $err->{https_status};     # HTTP status code
+        die;
+    }
+
+    say $borrower->firstname . ' <=> ' . $node->findvalue('./Personpost/Namn/Fornamn');
+    say $borrower->surname   . ' <=> ' . $node->findvalue('./Personpost/Namn/Efternamn');
+    say $borrower->address   . ' <=> ' . $node->findvalue('./Personpost/Adresser/Folkbokforingsadress/Utdelningsadress2');
+    say $borrower->zipcode   . ' <=> ' . $node->findvalue('./Personpost/Adresser/Folkbokforingsadress/PostNr');
+    say $borrower->city      . ' <=> ' . $node->findvalue('./Personpost/Adresser/Folkbokforingsadress/Postort');
+
+}
+
+=head1 OPTIONS
+
+=over 4
+
+=item B<-b, --borrowernumbers>
+
+One or more borrowernumbers to look up. If more than one borrowernumber is given,
+they should be separated by commas, without any spaces. Example:
+
+  --borrowernumbers 123456789,234567890
+
+=item B<-c, --configfile>
+
+Path to config file in YAML format.
+
+=item B<-l, --limit>
+
+Only process the n first somethings.
+
+=item B<-v --verbose>
+
+More verbose output.
+
+=item B<-d --debug>
+
+Even more verbose output.
+
+=item B<-h, -?, --help>
+
+Prints this help message and exits.
+
+=back
+
+=cut
+
+sub get_options {
+
+    # Options
+    my $borrowers  = '';
+    my $configfile = '';
+    my $limit      = '';
+    my $verbose    = '';
+    my $debug      = '';
+    my $help       = '';
+
+    GetOptions (
+        'b|borrowernumbers=s' => \$borrowers,
+        'c|configfile=s'      => \$configfile,
+        'l|limit=i'           => \$limit,
+        'v|verbose'           => \$verbose,
+        'd|debug'             => \$debug,
+        'h|?|help'            => \$help
+    );
+
+    pod2usage( -exitval => 0 ) if $help;
+    pod2usage( -msg => "\nMissing Argument: -c, --configfile required\n", -exitval => 1 ) if !$configfile;
+
+    return ( $borrowers, $configfile, $limit, $verbose, $debug );
+
+}
+
+=head1 AUTHOR
+
+Magnus Enger, <magnus [at] libriotech.no>
+
+=head1 LICENSE
+
+ This program is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+ This program is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ You should have received a copy of the GNU General Public License
+ along with this program.  If not, see <http://www.gnu.org/licenses/>.
+
+=cut

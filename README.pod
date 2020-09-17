@@ -1,0 +1,24 @@
+=pod
+
+=encoding UTF8
+
+=head1 navet2koha
+
+Sync patron data from Navet to Koha, based on personnummer (social security number).
+
+=head2 PREREQUISITES
+
+This module: https://gitlab.lub.lu.se/modules/Navet-ePersondata
+
+To install:
+
+ $ git clone https://gitlab.lub.lu.se/modules/Navet-ePersondata.git
+ $ cd Navet-ePersondata
+ $ sudo cpanm .
+
+If you run into trouble with installing Crypt::SSLeay, try installing the
+packaged version:
+
+ $ sudo apt-get install libcrypt-ssleay-perl
+
+=cut

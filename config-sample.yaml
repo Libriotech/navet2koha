@@ -1,0 +1,8 @@
+---
+
+pkcs12_file:     /path/to/cert.p12
+pkcs12_password: 1234
+OrgNr:           123456789012
+BestallningsId:  00001234-FO01-1234
+
+socsec_attribute: PNR
