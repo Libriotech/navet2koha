@@ -129,9 +129,14 @@ if ( $borrowernumbers ) {
             say "FAIL SocSec not found";
         }
     }
+    foreach my $borrower ( @borrowers_ok ) {
+        _process_borrower( $borrower );
+    }
 }
 
-foreach my $borrower ( @borrowers_ok ) {
+sub _process_borrower
+
+    my ( $borrower ) = @_;
 
     my $socsec = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'socsec_attribute' } );
     my $node = $ep->find_first({ PersonId => $socsec });
@@ -173,7 +178,7 @@ Path to config file in YAML format.
 
 =item B<-l, --limit>
 
-Only process the n first somethings.
+Only process the n first patrons.
 
 =item B<-v --verbose>
 
