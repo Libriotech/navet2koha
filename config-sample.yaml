@@ -6,3 +6,4 @@ OrgNr:           123456789012
 BestallningsId:  00001234-FO01-1234
 
 socsec_attribute: PNR
+protect_attribute: SKYDDAD
