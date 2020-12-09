@@ -148,11 +148,11 @@ sub _process_borrower {
         die;
     }
 
-    say $borrower->firstname . ' <=> ' . $node->findvalue('./Personpost/Namn/Fornamn');
-    say $borrower->surname   . ' <=> ' . $node->findvalue('./Personpost/Namn/Efternamn');
-    say $borrower->address   . ' <=> ' . $node->findvalue('./Personpost/Adresser/Folkbokforingsadress/Utdelningsadress2');
-    say $borrower->zipcode   . ' <=> ' . $node->findvalue('./Personpost/Adresser/Folkbokforingsadress/PostNr');
-    say $borrower->city      . ' <=> ' . $node->findvalue('./Personpost/Adresser/Folkbokforingsadress/Postort');
+    foreach my $key ( keys %{ $config->{ 'patronmap' } } ) {
+
+        say $borrower->$key . ' <=> ' . $node->findvalue( $config->{ 'patronmap' }->{ $key } );
+
+    }
 
 }
 

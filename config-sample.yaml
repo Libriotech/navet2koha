@@ -7,3 +7,10 @@ BestallningsId:  00001234-FO01-1234
 
 socsec_attribute: PNR
 protect_attribute: SKYDDAD
+
+patronmap:
+    firstname: './Personpost/Namn/Fornamn'
+    surname:   './Personpost/Namn/Efternamn'
+    address:   './Personpost/Adresser/Folkbokforingsadress/Utdelningsadress2'
+    zipcode:   './Personpost/Adresser/Folkbokforingsadress/PostNr'
+    city:      './Personpost/Adresser/Folkbokforingsadress/Postort'
