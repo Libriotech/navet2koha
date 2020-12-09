@@ -96,8 +96,6 @@ my $ep = Navet::ePersondata::Personpost->new(
     BestallningsId  => $config->{ 'BestallningsId' },
 );
 
-my @borrowers_ok;
-
 # Turn a list of borrowernumbers into a list of borrowers
 if ( $borrowernumbers ) {
     my @borrnums = split /,/, $borrowernumbers;
@@ -121,16 +119,13 @@ if ( $borrowernumbers ) {
             my $pnr = new Se::PersonNr( $socsec );
             if ( $pnr->is_valid() ) {
                 say "OK";
-                push @borrowers_ok, $patron;
+                _process_borrower( $patron );
             } else {
                 say "FAIL Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")";
             }
         } else {
             say "FAIL SocSec not found";
         }
-    }
-    foreach my $borrower ( @borrowers_ok ) {
-        _process_borrower( $borrower );
     }
 }
 
