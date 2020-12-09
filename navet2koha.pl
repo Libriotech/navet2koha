@@ -148,10 +148,24 @@ sub _process_borrower {
         die;
     }
 
-    foreach my $key ( keys %{ $config->{ 'patronmap' } } ) {
+    # Walk through the data and see if Koha and Navet differ
+    my $is_changed = 0;
+    foreach my $key ( sort keys %{ $config->{ 'patronmap' } } ) {
 
-        say $borrower->$key . ' <=> ' . $node->findvalue( $config->{ 'patronmap' }->{ $key } );
+        print $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $node->findvalue( $config->{ 'patronmap' }->{ $key } ) . '"';
+        if ( $borrower->$key eq $node->findvalue( $config->{ 'patronmap' }->{ $key } ) ) {
+            print ' -> equal';
+        } else {
+            print ' -> NOT equal';
+            $is_changed = 1;
+        }
+        print "\n";
+    
+    }
 
+    # Only save if we have some changes
+    if ( $is_changed == 1 ) {
+        say "Going to update borrower";
     }
 
 }
