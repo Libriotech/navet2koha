@@ -115,9 +115,10 @@ if ( $borrowernumbers ) {
     my $count = 0;
     my $patrons = Koha::Patrons->search();
     while ( my $patron = $patrons->next ) {
-        say $patron->surname;
+        say "*** Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'verbose'};
         $count++;
-        last if $count == 10;
+        _process_borrower( $patron );
+        last if $limit && $count == $limit;
     }
 
 }
