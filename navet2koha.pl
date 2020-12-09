@@ -107,8 +107,6 @@ if ( $borrowernumbers ) {
             say "Patron not found for borrowernumber=$borrowernumber" if $config->{'verbose'};
             next BORRNUM;
         }
-        # my $socsec = $patron->extended_attributes( $config->{ 'socsec_attribute' } );
-        # say Dumper $patron->get_extended_attribute( $config->{ 'socsec_attribute' } )->attribute;
         my $socsec = C4::Members::Attributes::GetBorrowerAttributeValue( $borrowernumber, $config->{ 'socsec_attribute' } );
         # Check that we have a social security number that looks ok
         if ( $socsec ) {
