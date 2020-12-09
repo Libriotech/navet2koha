@@ -134,7 +134,7 @@ if ( $borrowernumbers ) {
     }
 }
 
-sub _process_borrower
+sub _process_borrower {
 
     my ( $borrower ) = @_;
 
