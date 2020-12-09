@@ -107,24 +107,7 @@ if ( $borrowernumbers ) {
             say "Patron not found for borrowernumber=$borrowernumber" if $config->{'verbose'};
             next BORRNUM;
         }
-        my $socsec = C4::Members::Attributes::GetBorrowerAttributeValue( $borrowernumber, $config->{ 'socsec_attribute' } );
-        # Check that we have a social security number that looks ok
-        if ( $socsec ) {
-            say "Going to consider $socsec" if $config->{'verbose'};
-            if ( length $socsec != 12 ) {
-                say "FAIL Wrong length: $socsec";
-                next BORRNUM;
-            }
-            my $pnr = new Se::PersonNr( $socsec );
-            if ( $pnr->is_valid() ) {
-                say "OK";
-                _process_borrower( $patron );
-            } else {
-                say "FAIL Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")";
-            }
-        } else {
-            say "FAIL SocSec not found";
-        }
+        _process_borrower( $patron );
     }
 
 } else {
@@ -144,6 +127,23 @@ sub _process_borrower {
     my ( $borrower ) = @_;
 
     my $socsec = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'socsec_attribute' } );
+
+    # Do some checks
+    unless ( $socsec ) {
+        say "Personnummer not found";
+        return undef;
+    }
+    if ( length $socsec != 12 ) {
+        say "FAIL Wrong length: $socsec";
+        return undef;
+    }
+    my $pnr = new Se::PersonNr( $socsec );
+    if ( ! $pnr->is_valid() ) {
+        say "FAIL Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")";
+        return undef;
+    }
+
+    # Get the data from Navet
     my $node = $ep->find_first({ PersonId => $socsec });
 
     if ( my $err = $ep->error) {
