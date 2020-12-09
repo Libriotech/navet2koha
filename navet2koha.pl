@@ -98,6 +98,7 @@ my $ep = Navet::ePersondata::Personpost->new(
 
 # Turn a list of borrowernumbers into a list of borrowers
 if ( $borrowernumbers ) {
+
     my @borrnums = split /,/, $borrowernumbers;
     BORRNUM: foreach my $borrowernumber ( @borrnums ) {
         say "*** Looking at borrowernumber=$borrowernumber ***" if $config->{'verbose'};
@@ -127,6 +128,17 @@ if ( $borrowernumbers ) {
             say "FAIL SocSec not found";
         }
     }
+
+} else {
+
+    my $count = 0;
+    my $patrons = Koha::Patrons->search();
+    while ( my $patron = $patrons->next ) {
+        say $patron->surname;
+        $count++;
+        last if $count == 10;
+    }
+
 }
 
 sub _process_borrower {
