@@ -10,7 +10,7 @@ use Koha::Patrons;
 my $patrons = Koha::Patrons->search();
 
 my $count = 0;
-while ( my $p = $patrons->next ) {
+PATRON: while ( my $p = $patrons->next ) {
 
     my $uid = $p->userid;
 
@@ -34,22 +34,45 @@ while ( my $p = $patrons->next ) {
     my $attrs = GetBorrowerAttributes( $p->borrowernumber );
     say Dumper $attrs;
     my @updated_attrs;
-    foreach my $attr ( @{ $attrs } ) {
+    my $personnummer_found = 0;
+    ATTR: foreach my $attr ( @{ $attrs } ) {
         # Update existing attribute
+        if ( $attr->{ 'code' } eq 'SKYDDAD' && $attr->{ 'value' } eq '1' ) {
+            say "SKYDDAD";
+            next PATRON;
+        }
         if ( $attr->{ 'code' } eq 'PERSNUMMER' ) {
+            if ( $attr->{ 'value' } == $pnr ) {
+                say "Old value equals new value";
+                next PATRON;
+            }
             say "Setting value=$pnr";
             $attr->{ 'value' } = $pnr;
+            $personnummer_found = 1;
             # UpdateBorrowerAttribute( $p->borrowernumber, $attr );
         }
         say Dumper $attr;
         push @updated_attrs, $attr;
     }
-    say Dumper @updated_attrs;
+    if ( $personnummer_found == 0 ) {
+        # Add a new attribute
+        my $a  = {
+            'value'             => $pnr,
+            'description'       => 'Personnummer',
+            'class'             => '',
+            'code'              => 'PERSNUMMER',
+            'value_description' => undef,
+            'category_code'     => undef,
+            'display_checkout'  => 0,
+        };
+        push @updated_attrs, $a;
+    }
+    say Dumper \@updated_attrs;
     SetBorrowerAttributes( $p->borrowernumber, \@updated_attrs );
 
     $count++;
-    if ( $count == 2 ) {
-        exit;
+    if ( $count == 100 ) {
+        # exit;
     }
 
 }
