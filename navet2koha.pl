@@ -170,7 +170,7 @@ sub _process_borrower {
             print ' -> NOT equal';
             $is_changed = 1;
             # Update the object
-            $borrower->$key = $node->findvalue( $config->{ 'patronmap' }->{ $key } );
+            $borrower->$key( $node->findvalue( $config->{ 'patronmap' }->{ $key } ) );
         }
         print "\n";
     
@@ -179,7 +179,7 @@ sub _process_borrower {
     # Only save if we have some changes
     if ( $is_changed == 1 ) {
         say "Going to update borrower";
-        $borrower->save;
+        $borrower->store;
         say "Done";
     }
 
