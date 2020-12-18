@@ -86,9 +86,9 @@ $config->{'debug'}   = $debug;
 
 # Set up logging if requested
 my $log;
-if ( $config->{'logdir'} ) {
+if ( defined $config->{'logdir'} ) {
     my $filename = 'navet2koha-' . $dt->ymd('-') . 'T' . $dt->hms('') . '.log';
-    my $logpath = $logdir . '/' . $filename;
+    my $logpath = $config->{'logdir'} . '/' . $filename;
     open( $log, '>>', $logpath ) or die "Could not open file '$logpath' $!";
 }
 
