@@ -5,6 +5,8 @@ pkcs12_password: 1234
 OrgNr:           123456789012
 BestallningsId:  00001234-FO01-1234
 
+logdir: /etc/koha/sites/mykoha/navet2koha/
+
 socsec_attribute: PNR
 protected_attribute: SKYDDAD
 

@@ -74,7 +74,6 @@ use C4::Members::Attributes;
 use Koha::Patrons;
 
 my $dt = DateTime->now;
-my $date = $dt->ymd;
 
 # Get options
 my ( $borrowernumbers, $configfile, $limit, $offset, $verbose, $debug ) = get_options();
@@ -84,6 +83,14 @@ if ( !-e $configfile ) { die "The file $configfile does not exist..."; }
 my $config = LoadFile( $configfile );
 $config->{'verbose'} = $verbose;
 $config->{'debug'}   = $debug;
+
+# Set up logging if requested
+my $log;
+if ( $config->{'logdir'} ) {
+    my $filename = 'navet2koha-' . $dt->ymd('-') . 'T' . $dt->hms('') . '.log';
+    my $logpath = $logdir . '/' . $filename;
+    open( $log, '>>', $logpath ) or die "Could not open file '$logpath' $!";
+}
 
 my $ep = Navet::ePersondata::Personpost->new(
     # Set proxy to test service instead of production 
@@ -101,10 +108,10 @@ if ( $borrowernumbers ) {
 
     my @borrnums = split /,/, $borrowernumbers;
     BORRNUM: foreach my $borrowernumber ( @borrnums ) {
-        say "*** Looking at borrowernumber=$borrowernumber ***" if $config->{'verbose'};
+        say $log "*** Looking at borrowernumber=$borrowernumber ***" if $config->{'logdir'};
         my $patron = Koha::Patrons->find({ borrowernumber => $borrowernumber });
         unless ( $patron ) {
-            say "Patron not found for borrowernumber=$borrowernumber" if $config->{'verbose'};
+            say $log "Patron not found for borrowernumber=$borrowernumber" if $config->{'logdir'};
             next BORRNUM;
         }
         _process_borrower( $patron );
@@ -115,7 +122,7 @@ if ( $borrowernumbers ) {
     my $count = 0;
     my $patrons = Koha::Patrons->search();
     PATRON: while ( my $patron = $patrons->next ) {
-        say "*** Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'verbose'};
+        say $log "*** Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'logdir'};
         $count++;
         # Implement --offset
         next PATRON if $offset && $count < $offset;
@@ -125,6 +132,8 @@ if ( $borrowernumbers ) {
     }
 
 }
+
+say $log "Done at " . $dt->ymd('-') . 'T' . $dt->hms('') if $config->{'logdir'};
 
 sub _process_borrower {
 
@@ -136,23 +145,23 @@ sub _process_borrower {
     # variable.
     my $protected = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'protected_attribute' } );
     if ( $protected && $protected == 1 ) {
-        say "Protected patron";
+        say $log "Protected patron" if $config->{'logdir'};
         return undef;
     }
 
     # Check the social security number makes sense
     my $socsec    = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'socsec_attribute' } );
     unless ( $socsec ) {
-        say "Personnummer not found";
+        say $log "Personnummer not found" if $config->{'logdir'};
         return undef;
     }
     if ( length $socsec != 12 ) {
-        say "FAIL Wrong length: $socsec";
+        say $log "FAIL Wrong length: $socsec" if $config->{'logdir'};
         return undef;
     }
     my $pnr = new Se::PersonNr( $socsec );
     if ( ! $pnr->is_valid() ) {
-        say "FAIL Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")";
+        say $log "FAIL Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'logdir'};
         return undef;
     }
 
@@ -160,14 +169,14 @@ sub _process_borrower {
     my $node = $ep->find_first({ PersonId => $socsec });
 
     if ( my $err = $ep->error) {
-        say "Error:";
-        say 'message: ' .          $err->{message};          # error text
-        say 'soap_faultcode: ' .   $err->{soap_faultcode};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
-        say 'soap_faultstring: ' . $err->{soap_faultstring}; # SOAP faultstring from /Envelope/BodyFault/faultstring
-        say 'sv_Felkod: ' .        $err->{sv_Felkod};        # Extra error code provided by Skatteverket
-        say 'sv_Beskrivning: ' .   $err->{sv_Beskrivning};   # Extra description provided by Skatteverket
-        say 'raw_error: ' .        $err->{raw_error};        # Unparsed error text (can be XML, HTML or plain text)
-        say 'https_status: ' .     $err->{https_status};     # HTTP status code
+        say $log "Error:" if $config->{'logdir'};
+        say $log 'message: ' .          $err->{message} if $config->{'logdir'};          # error text
+        say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'logdir'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
+        say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'logdir'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
+        say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'logdir'};        # Extra error code provided by Skatteverket
+        say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'logdir'};   # Extra description provided by Skatteverket
+        say $log 'raw_error: ' .        $err->{raw_error} if $config->{'logdir'};        # Unparsed error text (can be XML, HTML or plain text)
+        say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
         die;
     }
 
@@ -175,24 +184,24 @@ sub _process_borrower {
     my $is_changed = 0;
     foreach my $key ( sort keys %{ $config->{ 'patronmap' } } ) {
 
-        print $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $node->findvalue( $config->{ 'patronmap' }->{ $key } ) . '"';
+        print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $node->findvalue( $config->{ 'patronmap' }->{ $key } ) . '"' if $config->{'logdir'};
         if ( $borrower->$key eq $node->findvalue( $config->{ 'patronmap' }->{ $key } ) ) {
-            print ' -> equal';
+            print $log ' -> equal' if $config->{'logdir'};
         } else {
-            print ' -> NOT equal';
+            print $log ' -> NOT equal' if $config->{'logdir'};
             $is_changed = 1;
             # Update the object
             $borrower->$key( $node->findvalue( $config->{ 'patronmap' }->{ $key } ) );
         }
-        print "\n";
+        print $log "\n" if $config->{'logdir'};
     
     }
 
     # Only save if we have some changes
     if ( $is_changed == 1 ) {
-        say "Going to update borrower";
+        say $log "Going to update borrower" if $config->{'logdir'};
         $borrower->store;
-        say "Done";
+        say $log "Done" if $config->{'logdir'};
     }
 
 }
