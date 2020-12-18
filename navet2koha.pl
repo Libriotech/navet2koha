@@ -77,7 +77,7 @@ my $dt = DateTime->now;
 my $date = $dt->ymd;
 
 # Get options
-my ( $borrowernumbers, $configfile, $limit, $verbose, $debug ) = get_options();
+my ( $borrowernumbers, $configfile, $limit, $offset, $verbose, $debug ) = get_options();
 
 # Get the config from file and add verbose and debug to it
 if ( !-e $configfile ) { die "The file $configfile does not exist..."; }
@@ -114,11 +114,14 @@ if ( $borrowernumbers ) {
 
     my $count = 0;
     my $patrons = Koha::Patrons->search();
-    while ( my $patron = $patrons->next ) {
+    PATRON: while ( my $patron = $patrons->next ) {
         say "*** Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'verbose'};
         $count++;
+        # Implement --offset
+        next PATRON if $offset && $count < $offset;
         _process_borrower( $patron );
-        last if $limit && $count == $limit;
+        # Implement --limit
+        last PATRON if $limit && $count == $limit;
     }
 
 }
@@ -202,7 +205,11 @@ Path to config file in YAML format.
 
 =item B<-l, --limit>
 
-Only process the n first patrons.
+Only process the n first patrons. Does not work with --borrowernumbers.
+
+=item B<-o, --offset>
+
+Skip the n first patrons. Does not work with --borrowernumbers.
 
 =item B<-v --verbose>
 
@@ -226,6 +233,7 @@ sub get_options {
     my $borrowers  = '';
     my $configfile = '';
     my $limit      = '';
+    my $offset     = '';
     my $verbose    = '';
     my $debug      = '';
     my $help       = '';
@@ -234,6 +242,7 @@ sub get_options {
         'b|borrowernumbers=s' => \$borrowers,
         'c|configfile=s'      => \$configfile,
         'l|limit=i'           => \$limit,
+        'o|offset=i'          => \$offset,
         'v|verbose'           => \$verbose,
         'd|debug'             => \$debug,
         'h|?|help'            => \$help
@@ -242,7 +251,7 @@ sub get_options {
     pod2usage( -exitval => 0 ) if $help;
     pod2usage( -msg => "\nMissing Argument: -c, --configfile required\n", -exitval => 1 ) if !$configfile;
 
-    return ( $borrowers, $configfile, $limit, $verbose, $debug );
+    return ( $borrowers, $configfile, $limit, $offset, $verbose, $debug );
 
 }
 
