@@ -130,9 +130,18 @@ sub _process_borrower {
 
     my ( $borrower ) = @_;
 
-    my $socsec = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'socsec_attribute' } );
+    # Some patrons have a hidden address. These should not be updated with data
+    # from Navet. Such patrons should have an extended patron attribute set to 1.
+    # The name of the attribute is specified by the "protected_attribute" config
+    # variable.
+    my $protected = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'protected_attribute' } );
+    if ( $protected && $protected == 1 ) {
+        say "Protected patron";
+        return undef;
+    }
 
-    # Do some checks
+    # Check the social security number makes sense
+    my $socsec    = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'socsec_attribute' } );
     unless ( $socsec ) {
         say "Personnummer not found";
         return undef;
