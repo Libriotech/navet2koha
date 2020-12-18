@@ -122,8 +122,8 @@ if ( $borrowernumbers ) {
     my $count = 0;
     my $patrons = Koha::Patrons->search();
     PATRON: while ( my $patron = $patrons->next ) {
-        say $log "*** Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'logdir'};
         $count++;
+        say $log "*** $count Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'logdir'};
         # Implement --offset
         next PATRON if $offset && $count < $offset;
         _process_borrower( $patron );
@@ -156,12 +156,12 @@ sub _process_borrower {
         return undef;
     }
     if ( length $socsec != 12 ) {
-        say $log "FAIL Wrong length: $socsec" if $config->{'logdir'};
+        say $log "FAIL $socsec Wrong length" if $config->{'logdir'};
         return undef;
     }
     my $pnr = new Se::PersonNr( $socsec );
     if ( ! $pnr->is_valid() ) {
-        say $log "FAIL Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'logdir'};
+        say $log "FAIL $socsec Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'logdir'};
         return undef;
     }
 
@@ -179,6 +179,8 @@ sub _process_borrower {
         say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
         die;
     }
+
+    return undef unless $node;
 
     # Walk through the data and see if Koha and Navet differ
     my $is_changed = 0;
