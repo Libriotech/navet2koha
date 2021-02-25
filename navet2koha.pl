@@ -144,14 +144,20 @@ sub _process_borrower {
     # from Navet. Such patrons should have an extended patron attribute set to 1.
     # The name of the attribute is specified by the "protected_attribute" config
     # variable.
-    my $protected = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'protected_attribute' } );
+    my $protected = Koha::Patron::Attributes->search({
+        'borrowernumber' => $borrower->borrowernumber,
+        'code'           => $config->{ 'protected_attribute' },
+    })->attribute;
     if ( $protected && $protected == 1 ) {
         say $log "Protected patron" if $config->{'logdir'};
         return undef;
     }
 
     # Check the social security number makes sense
-    my $socsec    = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'socsec_attribute' } );
+    my $socsec Koha::Patron::Attributes->search({
+        'borrowernumber' => $borrower->borrowernumber,
+        'code'           => $config->{ 'socsec_attribute' },
+    })->attribute;
     unless ( $socsec ) {
         say $log "Personnummer not found" if $config->{'logdir'};
         return undef;
