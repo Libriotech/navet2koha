@@ -71,8 +71,8 @@ use Pod::Usage;
 use Modern::Perl;
 binmode STDOUT, ":utf8";
 
-use C4::Members::Attributes;
 use Koha::Patrons;
+use Koha::Patron::Attributes;
 
 my $dt = DateTime->now;
 
