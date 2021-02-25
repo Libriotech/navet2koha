@@ -65,6 +65,7 @@ use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 use Template;
 use DateTime;
+use Try::Tiny;
 use YAML::Syck;
 use Pod::Usage;
 use Modern::Perl;
@@ -88,7 +89,7 @@ $config->{'debug'}   = $debug;
 my $log;
 if ( $config->{'logdir'} ) {
     my $filename = 'navet2koha-' . $dt->ymd('-') . 'T' . $dt->hms('') . '.log';
-    my $logpath = $logdir . '/' . $filename;
+    my $logpath = $config->{'logdir'} . '/' . $filename;
     open( $log, '>>', $logpath ) or die "Could not open file '$logpath' $!";
 }
 
@@ -166,19 +167,23 @@ sub _process_borrower {
     }
 
     # Get the data from Navet
-    my $node = $ep->find_first({ PersonId => $socsec });
-
-    if ( my $err = $ep->error) {
-        say $log "Error:" if $config->{'logdir'};
-        say $log 'message: ' .          $err->{message} if $config->{'logdir'};          # error text
-        say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'logdir'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
-        say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'logdir'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
-        say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'logdir'};        # Extra error code provided by Skatteverket
-        say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'logdir'};   # Extra description provided by Skatteverket
-        say $log 'raw_error: ' .        $err->{raw_error} if $config->{'logdir'};        # Unparsed error text (can be XML, HTML or plain text)
-        say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
-        die;
-    }
+    my $node;
+    try {
+        $node = $ep->find_first({ PersonId => $socsec });
+    } catch {
+        warn "caught error: $_"; # not $@
+        if ( my $err = $ep->error) {
+            say $log "Error:" if $config->{'logdir'};
+            say $log 'message: ' .          $err->{message} if $config->{'logdir'};          # error text
+            say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'logdir'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
+            say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'logdir'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
+            say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'logdir'};        # Extra error code provided by Skatteverket
+            say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'logdir'};   # Extra description provided by Skatteverket
+            say $log 'raw_error: ' .        $err->{raw_error} if $config->{'logdir'};        # Unparsed error text (can be XML, HTML or plain text)
+            say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
+        }
+        # TODO Is there some way we can try the patron again later?
+    };
 
     # Walk through the data and see if Koha and Navet differ
     my $is_changed = 0;
