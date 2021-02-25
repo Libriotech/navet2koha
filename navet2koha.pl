@@ -65,6 +65,7 @@ use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
 use Template;
 use DateTime;
+use Try::Tiny;
 use YAML::Syck;
 use Pod::Usage;
 use Modern::Perl;
@@ -143,14 +144,20 @@ sub _process_borrower {
     # from Navet. Such patrons should have an extended patron attribute set to 1.
     # The name of the attribute is specified by the "protected_attribute" config
     # variable.
-    my $protected = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'protected_attribute' } );
+    my $protected = Koha::Patron::Attributes->search({
+        'borrowernumber' => $borrower->borrowernumber,
+        'code'           => $config->{ 'protected_attribute' },
+    })->attribute;
     if ( $protected && $protected == 1 ) {
         say $log "Protected patron" if $config->{'logdir'};
         return undef;
     }
 
     # Check the social security number makes sense
-    my $socsec    = C4::Members::Attributes::GetBorrowerAttributeValue( $borrower->borrowernumber, $config->{ 'socsec_attribute' } );
+    my $socsec Koha::Patron::Attributes->search({
+        'borrowernumber' => $borrower->borrowernumber,
+        'code'           => $config->{ 'socsec_attribute' },
+    })->attribute;
     unless ( $socsec ) {
         say $log "Personnummer not found" if $config->{'logdir'};
         return undef;
@@ -166,19 +173,23 @@ sub _process_borrower {
     }
 
     # Get the data from Navet
-    my $node = $ep->find_first({ PersonId => $socsec });
-
-    if ( my $err = $ep->error) {
-        say $log "Error:" if $config->{'logdir'};
-        say $log 'message: ' .          $err->{message} if $config->{'logdir'};          # error text
-        say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'logdir'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
-        say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'logdir'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
-        say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'logdir'};        # Extra error code provided by Skatteverket
-        say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'logdir'};   # Extra description provided by Skatteverket
-        say $log 'raw_error: ' .        $err->{raw_error} if $config->{'logdir'};        # Unparsed error text (can be XML, HTML or plain text)
-        say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
-        die;
-    }
+    my $node;
+    try {
+        $node = $ep->find_first({ PersonId => $socsec });
+    } catch {
+        warn "caught error: $_"; # not $@
+        if ( my $err = $ep->error) {
+            say $log "Error:" if $config->{'logdir'};
+            say $log 'message: ' .          $err->{message} if $config->{'logdir'};          # error text
+            say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'logdir'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
+            say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'logdir'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
+            say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'logdir'};        # Extra error code provided by Skatteverket
+            say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'logdir'};   # Extra description provided by Skatteverket
+            say $log 'raw_error: ' .        $err->{raw_error} if $config->{'logdir'};        # Unparsed error text (can be XML, HTML or plain text)
+            say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
+        }
+        # TODO Is there some way we can try the patron again later?
+    };
 
     return undef unless $node;
 
