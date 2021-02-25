@@ -154,7 +154,7 @@ sub _process_borrower {
     }
 
     # Check the social security number makes sense
-    my $socsec Koha::Patron::Attributes->search({
+    my $socsec = Koha::Patron::Attributes->search({
         'borrowernumber' => $borrower->borrowernumber,
         'code'           => $config->{ 'socsec_attribute' },
     })->attribute;
