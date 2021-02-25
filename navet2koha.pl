@@ -147,8 +147,8 @@ sub _process_borrower {
     my $protected = Koha::Patron::Attributes->search({
         'borrowernumber' => $borrower->borrowernumber,
         'code'           => $config->{ 'protected_attribute' },
-    })->attribute;
-    if ( $protected && $protected == 1 ) {
+    });
+    if ( $protected && $protected->next->attribute == 1 ) {
         say $log "Protected patron" if $config->{'logdir'};
         return undef;
     }
@@ -158,7 +158,7 @@ sub _process_borrower {
         'borrowernumber' => $borrower->borrowernumber,
         'code'           => $config->{ 'socsec_attribute' },
     })->attribute;
-    unless ( $socsec ) {
+    unless ( $socsec && $socsec->next->attribute ) {
         say $log "Personnummer not found" if $config->{'logdir'};
         return undef;
     }
