@@ -34,6 +34,7 @@ This is an example of data returned from the API:
               <Namn>
                 <Tilltalsnamnsmarkering>10</Tilltalsnamnsmarkering>
                 <Fornamn>Medel</Fornamn>
+                <Mellannamn>Meddel</Mellannamn>
                 <Efternamn>Svensson</Efternamn>
               </Namn>
               <Adresser>
@@ -57,7 +58,10 @@ This is an example of data returned from the API:
 
 =cut
 
+# Uncomment the line below to get debug output from the SOAP dialogue 
+# with Navet, including a dump of all data received as XML.
 # use SOAP::Lite ( +trace => 'all', readable => 1, outputxml => 1, );
+
 use Navet::ePersondata::Personpost;
 use Se::PersonNr;
 use Getopt::Long;
@@ -115,7 +119,9 @@ if ( $borrowernumbers ) {
             say $log "Patron not found for borrowernumber=$borrowernumber" if $config->{'logdir'};
             next BORRNUM;
         }
+        say $log "Looking..." if $config->{'logdir'};
         _process_borrower( $patron );
+        say $log "Done." if $config->{'logdir'};
     }
 
 } else {
@@ -148,34 +154,44 @@ sub _process_borrower {
         'borrowernumber' => $borrower->borrowernumber,
         'code'           => $config->{ 'protected_attribute' },
     });
-    if ( $protected && $protected->next->attribute == 1 ) {
+    if ( $protected && $protected->count > 0 && $protected->next->attribute == 1 ) {
         say $log "Protected patron" if $config->{'logdir'};
         return undef;
+    } else {
+        say $log "Not protected" if $config->{'logdir'};
     }
 
     # Check the social security number makes sense
     my $socsec = Koha::Patron::Attributes->search({
         'borrowernumber' => $borrower->borrowernumber,
         'code'           => $config->{ 'socsec_attribute' },
-    })->attribute;
-    unless ( $socsec && $socsec->next->attribute ) {
+    })->next->attribute;
+    unless ( $socsec ) {
         say $log "Personnummer not found" if $config->{'logdir'};
         return undef;
+    } else {
+        say $log "Personnummer found" if $config->{'logdir'};
     }
     if ( length $socsec != 12 ) {
         say $log "FAIL $socsec Wrong length" if $config->{'logdir'};
         return undef;
+    } else {
+        say $log "Correct length" if $config->{'logdir'};
     }
     my $pnr = new Se::PersonNr( $socsec );
     if ( ! $pnr->is_valid() ) {
         say $log "FAIL $socsec Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'logdir'};
         return undef;
+    } else {
+        say $log "Accepted by Se::PersonNr" if $config->{'logdir'};
     }
 
     # Get the data from Navet
     my $node;
     try {
+        say $log "Looking up PersonId => $socsec" if $config->{'logdir'};
         $node = $ep->find_first({ PersonId => $socsec });
+        say $log "Done looking up" if $config->{'logdir'};
     } catch {
         warn "caught error: $_"; # not $@
         if ( my $err = $ep->error) {
@@ -191,7 +207,10 @@ sub _process_borrower {
         # TODO Is there some way we can try the patron again later?
     };
 
+    say $log "Do we have a node?" if $config->{'logdir'};
     return undef unless $node;
+    say $log "We have a node" if $config->{'logdir'};
+    say $log Dumper join ' ', $node->findvalue('./Personpost/Namn/Fornamn') if $config->{'logdir'};
 
     # Walk through the data and see if Koha and Navet differ
     my $is_changed = 0;
