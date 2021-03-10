@@ -81,13 +81,19 @@ use Koha::Patron::Attributes;
 my $dt = DateTime->now;
 
 # Get options
-my ( $borrowernumbers, $configfile, $limit, $offset, $verbose, $debug ) = get_options();
+my ( $borrowernumbers, $configfile, $capture_names, $limit, $offset, $verbose, $debug ) = get_options();
 
 # Get the config from file and add verbose and debug to it
 if ( !-e $configfile ) { die "The file $configfile does not exist..."; }
 my $config = LoadFile( $configfile );
 $config->{'verbose'} = $verbose;
 $config->{'debug'}   = $debug;
+
+# Set up a file for capturing names
+my $names;
+if ( $capture_names ) {
+    open( $names, '>>', $capture_names ) or die "Could not open file '$capture_names' $!";
+}
 
 # Set up logging if requested
 my $log;
@@ -212,28 +218,35 @@ sub _process_borrower {
     say $log "We have a node" if $config->{'logdir'};
     say $log Dumper join ' ', $node->findvalue('./Personpost/Namn/Fornamn') if $config->{'logdir'};
 
-    # Walk through the data and see if Koha and Navet differ
-    my $is_changed = 0;
-    foreach my $key ( sort keys %{ $config->{ 'patronmap' } } ) {
+    if ( $capture_names ) {
 
-        print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $node->findvalue( $config->{ 'patronmap' }->{ $key } ) . '"' if $config->{'logdir'};
-        if ( $borrower->$key eq $node->findvalue( $config->{ 'patronmap' }->{ $key } ) ) {
-            print $log ' -> equal' if $config->{'logdir'};
-        } else {
-            print $log ' -> NOT equal' if $config->{'logdir'};
-            $is_changed = 1;
-            # Update the object
-            $borrower->$key( $node->findvalue( $config->{ 'patronmap' }->{ $key } ) );
+        say $names $node->findvalue( './Personpost/Namn/Fornamn' ) . ',' . $node->findvalue( './Personpost/Namn/Mellannamn' ) . ',' . $node->findvalue( './Personpost/Namn/Efternamn' );
+
+    } else {
+        # Walk through the data and see if Koha and Navet differ
+        my $is_changed = 0;
+        foreach my $key ( sort keys %{ $config->{ 'patronmap' } } ) {
+
+            print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $node->findvalue( $config->{ 'patronmap' }->{ $key } ) . '"' if $config->{'logdir'};
+            if ( $borrower->$key eq $node->findvalue( $config->{ 'patronmap' }->{ $key } ) ) {
+                print $log ' -> equal' if $config->{'logdir'};
+            } else {
+                print $log ' -> NOT equal' if $config->{'logdir'};
+                $is_changed = 1;
+                # Update the object
+                $borrower->$key( $node->findvalue( $config->{ 'patronmap' }->{ $key } ) );
+            }
+            print $log "\n" if $config->{'logdir'};
+        
         }
-        print $log "\n" if $config->{'logdir'};
-    
-    }
 
-    # Only save if we have some changes
-    if ( $is_changed == 1 ) {
-        say $log "Going to update borrower" if $config->{'logdir'};
-        $borrower->store;
-        say $log "Done" if $config->{'logdir'};
+        # Only save if we have some changes
+        if ( $is_changed == 1 ) {
+            say $log "Going to update borrower" if $config->{'logdir'};
+            $borrower->store;
+            say $log "Done" if $config->{'logdir'};
+        }
+
     }
 
 }
@@ -252,6 +265,15 @@ they should be separated by commas, without any spaces. Example:
 =item B<-c, --configfile>
 
 Path to config file in YAML format.
+
+=item B<--capture_names>
+
+Path to file where names from Navet should be captured.
+
+Navet provides separate fields for firstname, middlename and surname. It might
+necessary to inspect how names are split across these fields. If B<--capture_names>
+is enabled, no updates will be made, but names will be written to a comma separated
+file in the current working directory, with the name B<captured_names.txt>.
 
 =item B<-l, --limit>
 
@@ -280,17 +302,19 @@ Prints this help message and exits.
 sub get_options {
 
     # Options
-    my $borrowers  = '';
-    my $configfile = '';
-    my $limit      = '';
-    my $offset     = '';
-    my $verbose    = '';
-    my $debug      = '';
-    my $help       = '';
+    my $borrowers     = '';
+    my $configfile    = '';
+    my $capture_names = '';
+    my $limit         = '';
+    my $offset        = '';
+    my $verbose       = '';
+    my $debug         = '';
+    my $help          = '';
 
     GetOptions (
         'b|borrowernumbers=s' => \$borrowers,
         'c|configfile=s'      => \$configfile,
+        'capture_names=s'     => \$capture_names,
         'l|limit=i'           => \$limit,
         'o|offset=i'          => \$offset,
         'v|verbose'           => \$verbose,
@@ -301,7 +325,7 @@ sub get_options {
     pod2usage( -exitval => 0 ) if $help;
     pod2usage( -msg => "\nMissing Argument: -c, --configfile required\n", -exitval => 1 ) if !$configfile;
 
-    return ( $borrowers, $configfile, $limit, $offset, $verbose, $debug );
+    return ( $borrowers, $configfile, $capture_names, $limit, $offset, $verbose, $debug );
 
 }
 
