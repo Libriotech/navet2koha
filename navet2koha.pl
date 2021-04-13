@@ -168,16 +168,17 @@ sub _process_borrower {
     }
 
     # Check the social security number makes sense
-    my $socsec = Koha::Patron::Attributes->search({
+    my $socsec_attr = Koha::Patron::Attributes->search({
         'borrowernumber' => $borrower->borrowernumber,
         'code'           => $config->{ 'socsec_attribute' },
-    })->next->attribute;
-    unless ( $socsec ) {
+    });
+    unless ( $socsec_attr && $socsec_attr->count ) {
         say $log "Personnummer not found" if $config->{'logdir'};
         return undef;
     } else {
         say $log "Personnummer found" if $config->{'logdir'};
     }
+    my $socsec = $socsec_attr->next->attribute;
     if ( length $socsec != 12 ) {
         say $log "FAIL $socsec Wrong length" if $config->{'logdir'};
         return undef;
