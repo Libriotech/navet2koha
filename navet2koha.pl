@@ -103,7 +103,7 @@ if ( defined $config->{'logdir'} ) {
     open( $log, '>>', $logpath ) or die "Could not open file '$logpath' $!";
 }
 
-say $log "!!! Running in test mode, not data in Koha will be changed/updated!" if $test_mode && $config->{'logdir'};
+say $log "!!! Running in test mode, no data in Koha will be changed/updated!" if $test_mode && $config->{'logdir'};
 
 my $ep = Navet::ePersondata::Personpost->new(
     # Set proxy to test service instead of production 
