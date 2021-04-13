@@ -216,10 +216,10 @@ sub _process_borrower {
         # TODO Is there some way we can try the patron again later?
     };
 
-    say $log "Do we have a node?" if $config->{'logdir'};
+    # say $log "Do we have a node?" if $config->{'logdir'};
     return undef unless $node;
-    say $log "We have a node" if $config->{'logdir'};
-    say $log Dumper join ' ', $node->findvalue('./Personpost/Namn/Fornamn') if $config->{'logdir'};
+    # say $log "We have a node" if $config->{'logdir'};
+    # say $log Dumper join ' ', $node->findvalue('./Personpost/Namn/Fornamn') if $config->{'logdir'};
 
     if ( $capture_names ) {
 
