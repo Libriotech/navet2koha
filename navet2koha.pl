@@ -221,7 +221,7 @@ sub _process_borrower {
 
     if ( $capture_names ) {
 
-        say $names $node->findvalue( './Personpost/Namn/Fornamn' ) . ',' . $node->findvalue( './Personpost/Namn/Mellannamn' ) . ',' . $node->findvalue( './Personpost/Namn/Efternamn' );
+        say $names '"' . $node->findvalue( './Personpost/Namn/Fornamn' ) . '","' . $node->findvalue( './Personpost/Namn/Mellannamn' ) . '","' . $node->findvalue( './Personpost/Namn/Efternamn' ) . '"';
 
     } else {
         # Walk through the data and see if Koha and Navet differ
