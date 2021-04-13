@@ -1,18 +1,51 @@
 ---
 
+# See https://gitlab.lub.lu.se/modules/Navet-ePersondata for information about
+# these certificates and how to obtain them.
 pkcs12_file:     /path/to/cert.p12
 pkcs12_password: 1234
 OrgNr:           123456789012
 BestallningsId:  00001234-FO01-1234
 
+# Scripts will write logs to this location
 logdir: /etc/koha/sites/mykoha/navet2koha/
 
+# Which extended patron attribute in Koha will be used to store the "personnummer"
+# (social security number) of patrons?
 socsec_attribute: PNR
+
+# Some patrons might have a "protected identity", which means their name and
+# address should not be in Koha. But their personnummer might be in Koha. So
+# we need to make sure these patrons are not updated with any data from Navet.
+# This is done by having an "extended patron attribute" that is set to "1" for
+# those patrons in question. This setting gives the code for the attribute.
+# So - any patrons with the given attribute, and a value of 1 associated with
+# the attribute, will be completely skipped by the script, and not updated
 protected_attribute: SKYDDAD
 
+# This map tells the script where in Koha to put the data from Navet. The most
+# interesting thing here are middle names. If you want to store them in the
+# firstname field, concatenated onto the end of the "Fornamn", do this:
+#
+# patronmap:
+#     firstname: 
+#       - './Personpost/Namn/Fornamn'
+#       - './Personpost/Namn/Mellannamn'
+#     surname: './Personpost/Namn/Efternamn'
+# 
+# If you want middle names in the surname field, before the actual surname, do
+# this:
+# 
+# patronmap:
+#     firstname: './Personpost/Namn/Fornamn'
+#     surname:   
+#       - './Personpost/Namn/Mellannamn'
+#       - './Personpost/Namn/Efternamn'
 patronmap:
     firstname: './Personpost/Namn/Fornamn'
-    surname:   './Personpost/Namn/Efternamn'
+    surname:   
+      - './Personpost/Namn/Mellannamn'
+      - './Personpost/Namn/Efternamn'
     address:   './Personpost/Adresser/Folkbokforingsadress/Utdelningsadress2'
     zipcode:   './Personpost/Adresser/Folkbokforingsadress/PostNr'
     city:      './Personpost/Adresser/Folkbokforingsadress/Postort'
