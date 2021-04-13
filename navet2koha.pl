@@ -81,7 +81,7 @@ use Koha::Patron::Attributes;
 my $dt = DateTime->now;
 
 # Get options
-my ( $borrowernumbers, $configfile, $capture_names, $limit, $offset, $verbose, $debug ) = get_options();
+my ( $borrowernumbers, $configfile, $capture_names, $limit, $offset, $test_mode, $verbose, $debug ) = get_options();
 
 # Get the config from file and add verbose and debug to it
 if ( !-e $configfile ) { die "The file $configfile does not exist..."; }
@@ -102,6 +102,8 @@ if ( defined $config->{'logdir'} ) {
     my $logpath = $config->{'logdir'} . '/' . $filename;
     open( $log, '>>', $logpath ) or die "Could not open file '$logpath' $!";
 }
+
+say $log "!!! Running in test mode, not data in Koha will be changed/updated!" if $test_mode;
 
 my $ep = Navet::ePersondata::Personpost->new(
     # Set proxy to test service instead of production 
@@ -244,7 +246,11 @@ sub _process_borrower {
         # Only save if we have some changes
         if ( $is_changed == 1 ) {
             say $log "Going to update borrower" if $config->{'logdir'};
-            $borrower->store;
+            if ( $test_mode == 0 ) {
+                $borrower->store;
+            } else {
+                say $log "Running in test mode, not updating";
+            }
             say $log "Done" if $config->{'logdir'};
         }
 
@@ -284,6 +290,10 @@ Only process the n first patrons. Does not work with --borrowernumbers.
 
 Skip the n first patrons. Does not work with --borrowernumbers.
 
+=item B<-t, --test>
+
+Run in test mode. No data will be changed/saved in Koha.
+
 =item B<-v --verbose>
 
 More verbose output.
@@ -308,6 +318,7 @@ sub get_options {
     my $capture_names = '';
     my $limit         = '';
     my $offset        = '';
+    my $test_mode     = 0;
     my $verbose       = '';
     my $debug         = '';
     my $help          = '';
@@ -318,6 +329,7 @@ sub get_options {
         'capture_names=s'     => \$capture_names,
         'l|limit=i'           => \$limit,
         'o|offset=i'          => \$offset,
+        't|test'              => \$test_mode,
         'v|verbose'           => \$verbose,
         'd|debug'             => \$debug,
         'h|?|help'            => \$help
@@ -326,7 +338,7 @@ sub get_options {
     pod2usage( -exitval => 0 ) if $help;
     pod2usage( -msg => "\nMissing Argument: -c, --configfile required\n", -exitval => 1 ) if !$configfile;
 
-    return ( $borrowers, $configfile, $capture_names, $limit, $offset, $verbose, $debug );
+    return ( $borrowers, $configfile, $capture_names, $limit, $offset, $test_mode, $verbose, $debug );
 
 }
 
