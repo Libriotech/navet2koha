@@ -230,14 +230,27 @@ sub _process_borrower {
         my $is_changed = 0;
         foreach my $key ( sort keys %{ $config->{ 'patronmap' } } ) {
 
-            print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $node->findvalue( $config->{ 'patronmap' }->{ $key } ) . '"' if $config->{'logdir'};
-            if ( $borrower->$key eq $node->findvalue( $config->{ 'patronmap' }->{ $key } ) ) {
+            my $navet_value;
+            if ( ref $config->{ 'patronmap' }->{ $key } eq 'ARRAY' ) {
+                foreach my $element ( @{ $config->{ 'patronmap' }->{ $key } } ) {
+                    if ( $navet_value ) {
+                        $navet_value .= ' ' . $node->findvalue( $element );
+                    } else {
+                        $navet_value .= $node->findvalue( $element );
+                    }
+                }
+            } else {
+                $navet_value = $node->findvalue( $config->{ 'patronmap' }->{ $key } );
+            }
+
+            print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $navet_value . '"' if $config->{'logdir'};
+            if ( $borrower->$key eq $navet_value ) {
                 print $log ' -> equal' if $config->{'logdir'};
             } else {
                 print $log ' -> NOT equal' if $config->{'logdir'};
                 $is_changed = 1;
                 # Update the object
-                $borrower->$key( $node->findvalue( $config->{ 'patronmap' }->{ $key } ) );
+                $borrower->$key( $navet_value );
             }
             print $log "\n" if $config->{'logdir'};
         
