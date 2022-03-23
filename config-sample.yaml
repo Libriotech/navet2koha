@@ -23,6 +23,9 @@ socsec_attribute: PNR
 # the attribute, will be completely skipped by the script, and not updated
 protected_attribute: SKYDDAD
 
+# Only process patrons with the given categorycodes
+categorycodes: "'X','Y'"
+
 # This map tells the script where in Koha to put the data from Navet. The most
 # interesting thing here are middle names. If you want to store them in the
 # firstname field, concatenated onto the end of the "Fornamn", do this:

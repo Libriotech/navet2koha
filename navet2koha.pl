@@ -135,10 +135,22 @@ if ( $borrowernumbers ) {
 } else {
 
     my $count = 0;
-    my $patrons = Koha::Patrons->search();
+    my $patrons;
+    if ( defined $config->{ 'categorycodes' } ) {
+        # Limit search to given categorycodes
+        $patrons = Koha::Patrons->search({
+            categorycode => {
+                -in => [ $config->{ 'categorycodes' } ]
+            }
+        });
+    } else {
+        # Process all patrons
+        $patrons = Koha::Patrons->search();
+    }
     PATRON: while ( my $patron = $patrons->next ) {
         $count++;
         say $log "*** $count Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'logdir'};
+        say $log "categorycode: " . $patron->categorycode if $config->{'logdir'};
         # Implement --offset
         next PATRON if $offset && $count < $offset;
         _process_borrower( $patron );
