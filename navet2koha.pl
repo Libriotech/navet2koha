@@ -215,18 +215,17 @@ sub _process_borrower {
         say $log "Done looking up" if $config->{'logdir'};
     } catch {
         warn "caught error: $_"; # not $@
-        if ( my $err = $ep->error) {
-            say $log "Error:" if $config->{'logdir'};
-            say $log 'message: ' .          $err->{message} if $config->{'logdir'};          # error text
-            say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'logdir'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
-            say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'logdir'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
-            say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'logdir'};        # Extra error code provided by Skatteverket
-            say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'logdir'};   # Extra description provided by Skatteverket
-            say $log 'raw_error: ' .        $err->{raw_error} if $config->{'logdir'};        # Unparsed error text (can be XML, HTML or plain text)
-            say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
-        }
-        # TODO Is there some way we can try the patron again later?
     };
+    if ( my $err = $ep->error) {
+        say $log "Error:" if $config->{'logdir'};
+        say $log 'message: ' .          $err->{message} if $config->{'logdir'};          # error text
+        say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'logdir'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
+        say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'logdir'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
+        say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'logdir'};        # Extra error code provided by Skatteverket
+        say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'logdir'};   # Extra description provided by Skatteverket
+        say $log 'raw_error: ' .        $err->{raw_error} if $config->{'logdir'};        # Unparsed error text (can be XML, HTML or plain text)
+        say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
+    }
 
     # say $log "Do we have a node?" if $config->{'logdir'};
     return undef unless $node;
