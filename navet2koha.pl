@@ -219,13 +219,13 @@ sub _process_borrower {
     };
     if ( my $err = $ep->error) {
         say $log "Error:" if $config->{'verbose'};
-        say $log 'message: ' .          $err->{message} if $config->{'verbose'};          # error text
-        say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'verbose'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
-        say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'verbose'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
-        say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'verbose'};        # Extra error code provided by Skatteverket
-        say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'verbose'};   # Extra description provided by Skatteverket
-        say $log 'raw_error: ' .        $err->{raw_error} if $config->{'verbose'};        # Unparsed error text (can be XML, HTML or plain text)
-        say $log 'https_status: ' .     $err->{https_status} if $config->{'verbose'};     # HTTP status code
+        say $log 'message: ' .          $err->{message}          if $err->{message}          && $config->{'verbose'}; # error text
+        say $log 'soap_faultcode: ' .   $err->{soap_faultcode}   if $err->{soap_faultcode}   && $config->{'verbose'}; # SOAP faultcode from /Envelope/Body/Fault/faultscode
+        say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $err->{soap_faultstring} && $config->{'verbose'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
+        say $log 'sv_Felkod: ' .        $err->{sv_Felkod}        if $err->{sv_Felkod}        && $config->{'verbose'}; # Extra error code provided by Skatteverket
+        say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning}   if $err->{sv_Beskrivning}   && $config->{'verbose'}; # Extra description provided by Skatteverket
+        say $log 'raw_error: ' .        $err->{raw_error}        if $err->{raw_error}        && $config->{'verbose'}; # Unparsed error text (can be XML, HTML or plain text)
+        say $log 'https_status: ' .     $err->{https_status}     if $err->{https_status}     && $config->{'verbose'}; # HTTP status code
     }
 
     # say $log "Do we have a node?" if $config->{'verbose'};
