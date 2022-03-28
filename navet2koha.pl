@@ -147,6 +147,7 @@ if ( $borrowernumbers ) {
         # Process all patrons
         $patrons = Koha::Patrons->search();
     }
+    say $log "Patrons found: " . $patrons->count if $config->{'logdir'};
     PATRON: while ( my $patron = $patrons->next ) {
         $count++;
         say $log "*** $count Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'logdir'};
