@@ -140,7 +140,7 @@ if ( $borrowernumbers ) {
         # Limit search to given categorycodes
         $patrons = Koha::Patrons->search({
             categorycode => {
-                -in => [ $config->{ 'categorycodes' } ]
+                -in => [ @{ $config->{ 'categorycodes' } } ]
             }
         });
     } else {
