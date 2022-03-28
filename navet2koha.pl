@@ -103,7 +103,7 @@ if ( defined $config->{'logdir'} ) {
     open( $log, '>>', $logpath ) or die "Could not open file '$logpath' $!";
 }
 
-say $log "!!! Running in test mode, no data in Koha will be changed/updated!" if $test_mode && $config->{'logdir'};
+say $log "!!! Running in test mode, no data in Koha will be changed/updated!" if $test_mode && $config->{'verbose'};
 
 my $ep = Navet::ePersondata::Personpost->new(
     # Set proxy to test service instead of production 
@@ -121,15 +121,15 @@ if ( $borrowernumbers ) {
 
     my @borrnums = split /,/, $borrowernumbers;
     BORRNUM: foreach my $borrowernumber ( @borrnums ) {
-        say $log "*** Looking at borrowernumber=$borrowernumber ***" if $config->{'logdir'};
+        say $log "*** Looking at borrowernumber=$borrowernumber ***" if $config->{'verbose'};
         my $patron = Koha::Patrons->find({ borrowernumber => $borrowernumber });
         unless ( $patron ) {
-            say $log "Patron not found for borrowernumber=$borrowernumber" if $config->{'logdir'};
+            say $log "Patron not found for borrowernumber=$borrowernumber" if $config->{'verbose'};
             next BORRNUM;
         }
-        say $log "Looking..." if $config->{'logdir'};
+        say $log "Looking..." if $config->{'verbose'};
         _process_borrower( $patron );
-        say $log "Done." if $config->{'logdir'};
+        say $log "Done." if $config->{'verbose'};
     }
 
 } else {
@@ -147,11 +147,11 @@ if ( $borrowernumbers ) {
         # Process all patrons
         $patrons = Koha::Patrons->search();
     }
-    say $log "Patrons found: " . $patrons->count if $config->{'logdir'};
+    say $log "Patrons found: " . $patrons->count if $config->{'verbose'};
     PATRON: while ( my $patron = $patrons->next ) {
         $count++;
-        say $log "*** $count Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'logdir'};
-        say $log "categorycode: " . $patron->categorycode if $config->{'logdir'};
+        say $log "*** $count Looking at borrowernumber=" . $patron->borrowernumber . "***" if $config->{'verbose'};
+        say $log "categorycode: " . $patron->categorycode if $config->{'verbose'};
         # Implement --offset
         next PATRON if $offset && $count < $offset;
         _process_borrower( $patron );
@@ -161,7 +161,7 @@ if ( $borrowernumbers ) {
 
 }
 
-say $log "Done at " . $dt->ymd('-') . 'T' . $dt->hms('') if $config->{'logdir'};
+say $log "Done at " . $dt->ymd('-') . 'T' . $dt->hms('') if $config->{'verbose'};
 
 sub _process_borrower {
 
@@ -176,10 +176,10 @@ sub _process_borrower {
         'code'           => $config->{ 'protected_attribute' },
     });
     if ( $protected && $protected->count > 0 && $protected->next->attribute == 1 ) {
-        say $log "Protected patron" if $config->{'logdir'};
+        say $log "Protected patron" if $config->{'verbose'};
         return undef;
     } else {
-        say $log "Not protected" if $config->{'logdir'};
+        say $log "Not protected" if $config->{'verbose'};
     }
 
     # Check the social security number makes sense
@@ -188,50 +188,50 @@ sub _process_borrower {
         'code'           => $config->{ 'socsec_attribute' },
     });
     unless ( $socsec_attr && $socsec_attr->count ) {
-        say $log "Personnummer not found" if $config->{'logdir'};
+        say $log "Personnummer not found" if $config->{'verbose'};
         return undef;
     } else {
-        say $log "Personnummer found" if $config->{'logdir'};
+        say $log "Personnummer found" if $config->{'verbose'};
     }
     my $socsec = $socsec_attr->next->attribute;
     if ( length $socsec != 12 ) {
-        say $log "FAIL $socsec Wrong length" if $config->{'logdir'};
+        say $log "FAIL $socsec Wrong length" if $config->{'verbose'};
         return undef;
     } else {
-        say $log "Correct length" if $config->{'logdir'};
+        say $log "Correct length" if $config->{'verbose'};
     }
     my $pnr = new Se::PersonNr( $socsec );
     if ( ! $pnr->is_valid() ) {
-        say $log "FAIL $socsec Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'logdir'};
+        say $log "FAIL $socsec Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'verbose'};
         return undef;
     } else {
-        say $log "Accepted by Se::PersonNr" if $config->{'logdir'};
+        say $log "Accepted by Se::PersonNr" if $config->{'verbose'};
     }
 
     # Get the data from Navet
     my $node;
     try {
-        say $log "Looking up PersonId => $socsec" if $config->{'logdir'};
+        say $log "Looking up PersonId => $socsec" if $config->{'verbose'};
         $node = $ep->find_first({ PersonId => $socsec });
-        say $log "Done looking up" if $config->{'logdir'};
+        say $log "Done looking up" if $config->{'verbose'};
     } catch {
         warn "caught error: $_"; # not $@
     };
     if ( my $err = $ep->error) {
-        say $log "Error:" if $config->{'logdir'};
-        say $log 'message: ' .          $err->{message} if $config->{'logdir'};          # error text
-        say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'logdir'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
-        say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'logdir'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
-        say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'logdir'};        # Extra error code provided by Skatteverket
-        say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'logdir'};   # Extra description provided by Skatteverket
-        say $log 'raw_error: ' .        $err->{raw_error} if $config->{'logdir'};        # Unparsed error text (can be XML, HTML or plain text)
-        say $log 'https_status: ' .     $err->{https_status} if $config->{'logdir'};     # HTTP status code
+        say $log "Error:" if $config->{'verbose'};
+        say $log 'message: ' .          $err->{message} if $config->{'verbose'};          # error text
+        say $log 'soap_faultcode: ' .   $err->{soap_faultcode} if $config->{'verbose'};   # SOAP faultcode from /Envelope/Body/Fault/faultscode
+        say $log 'soap_faultstring: ' . $err->{soap_faultstring} if $config->{'verbose'}; # SOAP faultstring from /Envelope/BodyFault/faultstring
+        say $log 'sv_Felkod: ' .        $err->{sv_Felkod} if $config->{'verbose'};        # Extra error code provided by Skatteverket
+        say $log 'sv_Beskrivning: ' .   $err->{sv_Beskrivning} if $config->{'verbose'};   # Extra description provided by Skatteverket
+        say $log 'raw_error: ' .        $err->{raw_error} if $config->{'verbose'};        # Unparsed error text (can be XML, HTML or plain text)
+        say $log 'https_status: ' .     $err->{https_status} if $config->{'verbose'};     # HTTP status code
     }
 
-    # say $log "Do we have a node?" if $config->{'logdir'};
+    # say $log "Do we have a node?" if $config->{'verbose'};
     return undef unless $node;
-    # say $log "We have a node" if $config->{'logdir'};
-    # say $log Dumper join ' ', $node->findvalue('./Personpost/Namn/Fornamn') if $config->{'logdir'};
+    # say $log "We have a node" if $config->{'verbose'};
+    # say $log Dumper join ' ', $node->findvalue('./Personpost/Namn/Fornamn') if $config->{'verbose'};
 
     if ( $capture_names ) {
 
@@ -255,28 +255,28 @@ sub _process_borrower {
                 $navet_value = $node->findvalue( $config->{ 'patronmap' }->{ $key } );
             }
 
-            print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $navet_value . '"' if $config->{'logdir'};
+            print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $navet_value . '"' if $config->{'verbose'};
             if ( $borrower->$key eq $navet_value ) {
-                print $log ' -> equal' if $config->{'logdir'};
+                print $log ' -> equal' if $config->{'verbose'};
             } else {
-                print $log ' -> NOT equal' if $config->{'logdir'};
+                print $log ' -> NOT equal' if $config->{'verbose'};
                 $is_changed = 1;
                 # Update the object
                 $borrower->$key( $navet_value );
             }
-            print $log "\n" if $config->{'logdir'};
+            print $log "\n" if $config->{'verbose'};
         
         }
 
         # Only save if we have some changes
         if ( $is_changed == 1 ) {
-            say $log "Going to update borrower" if $config->{'logdir'};
+            say $log "Going to update borrower" if $config->{'verbose'};
             if ( $test_mode == 0 ) {
                 $borrower->store;
             } else {
-                say $log "Running in test mode, not updating" if $config->{'logdir'};
+                say $log "Running in test mode, not updating" if $config->{'verbose'};
             }
-            say $log "Done" if $config->{'logdir'};
+            say $log "Done" if $config->{'verbose'};
         }
 
     }
