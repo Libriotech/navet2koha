@@ -194,6 +194,8 @@ sub _process_borrower {
         say $log "Personnummer found" if $config->{'verbose'};
     }
     my $socsec = $socsec_attr->next->attribute;
+    # Remove any whitespace
+    $socsec =~ s/\s//g;
     if ( length $socsec != 12 ) {
         say $log "FAIL $socsec Wrong length" if $config->{'verbose'};
         return undef;
