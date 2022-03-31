@@ -2,9 +2,11 @@
 
 # See https://gitlab.lub.lu.se/modules/Navet-ePersondata for information about
 # these certificates and how to obtain them.
+# NOTE: The OrgNr will look something like this: 12345678-9012. In the config it
+# should be prefixed with "16" and given without the hyphen: 16123456789012
 pkcs12_file:     /path/to/cert.p12
 pkcs12_password: 1234
-OrgNr:           123456789012
+OrgNr:           16123456789012
 BestallningsId:  00001234-FO01-1234
 
 # Scripts will write logs to this location
