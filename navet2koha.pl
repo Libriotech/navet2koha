@@ -121,7 +121,7 @@ if ( $borrowernumbers ) {
 
     my @borrnums = split /,/, $borrowernumbers;
     BORRNUM: foreach my $borrowernumber ( @borrnums ) {
-        say $log "*** Looking at borrowernumber=$borrowernumber ***" if $config->{'verbose'};
+        say $log "\n*** Looking at borrowernumber=$borrowernumber ***" if $config->{'verbose'};
         my $patron = Koha::Patrons->find({ borrowernumber => $borrowernumber });
         unless ( $patron ) {
             say $log "Patron not found for borrowernumber=$borrowernumber" if $config->{'verbose'};
