@@ -182,26 +182,38 @@ sub _process_borrower {
         say $log "Not protected" if $config->{'verbose'};
     }
 
-    # Check the social security number makes sense
+    ## Check the social security number makes sense
+
+    # Get the social security attribute
     my $socsec_attr = Koha::Patron::Attributes->search({
         'borrowernumber' => $borrower->borrowernumber,
         'code'           => $config->{ 'socsec_attribute' },
     });
+
+    # Check that we got an attribute
     unless ( $socsec_attr && $socsec_attr->count ) {
         say $log "Personnummer not found" if $config->{'verbose'};
         return undef;
     } else {
         say $log "Personnummer found" if $config->{'verbose'};
     }
+
+    # Extract the literal social security number
     my $socsec = $socsec_attr->next->attribute;
+
     # Remove any whitespace
     $socsec =~ s/\s//g;
+
+    # Check the length of the social security number, it should be 12 digits
     if ( length $socsec != 12 ) {
         say $log "FAIL $socsec Wrong length" if $config->{'verbose'};
         return undef;
     } else {
         say $log "Correct length" if $config->{'verbose'};
     }
+
+    # Try to parse the number with Se::PersonNr, this should check that the
+    # cheksum is correct, etc
     my $pnr = new Se::PersonNr( $socsec );
     if ( ! $pnr->is_valid() ) {
         say $log "FAIL $socsec Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'verbose'};
@@ -210,7 +222,7 @@ sub _process_borrower {
         say $log "Accepted by Se::PersonNr" if $config->{'verbose'};
     }
 
-    # Get the data from Navet
+    # If we got this far, try to get the actual data from Navet
     my $node;
     try {
         say $log "Looking up PersonId => $socsec" if $config->{'verbose'};
