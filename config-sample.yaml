@@ -54,3 +54,9 @@ patronmap:
     address:   './Personpost/Adresser/Folkbokforingsadress/Utdelningsadress2'
     zipcode:   './Personpost/Adresser/Folkbokforingsadress/PostNr'
     city:      './Personpost/Adresser/Folkbokforingsadress/Postort'
+
+# Navet provides the full set of first names in Fornamn. There is als a code 
+# called Tilltalsnamnsmarkering, which tells which of the firstnames is in daily
+# use. If this variable is set to 1, the full list of firstnames will be replaced
+# by the "tilltalsnamn", as specified by Tilltalsnamnsmarkering. 
+use_tilltalsnamn: 1

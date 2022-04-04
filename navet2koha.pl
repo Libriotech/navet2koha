@@ -75,6 +75,10 @@ use Pod::Usage;
 use Modern::Perl;
 binmode STDOUT, ":utf8";
 
+use FindBin qw($Bin);
+use lib "$Bin/lib";
+use Util;
+
 use Koha::Patrons;
 use Koha::Patron::Attributes;
 
@@ -255,6 +259,11 @@ sub _process_borrower {
         # Walk through the data and see if Koha and Navet differ
         my $is_changed = 0;
         foreach my $key ( sort keys %{ $config->{ 'patronmap' } } ) {
+
+            # Check if Fornamn (firstname) needs to be reduced to Tilltalsnamn (preferred name)
+            if ( defined $config->{'use_tilltalsnamn'} && $config->{'use_tilltalsnamn'} == 1 ) {
+                $node->findvalue( './Personpost/Namn/Fornamn' ) = Util::get_tilltalsnamn(  );
+            }
 
             my $navet_value;
             if ( ref $config->{ 'patronmap' }->{ $key } eq 'ARRAY' ) {
