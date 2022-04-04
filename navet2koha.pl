@@ -319,7 +319,7 @@ Path to file where names from Navet should be captured.
 Navet provides separate fields for firstname, middlename and surname. It might
 necessary to inspect how names are split across these fields. If B<--capture_names>
 is enabled, no updates will be made, but names will be written to a comma separated
-file in the current working directory, with the name B<captured_names.txt>.
+file, with the path given as argument to this option.
 
 =item B<-l, --limit>
 
