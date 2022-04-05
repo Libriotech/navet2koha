@@ -35,9 +35,12 @@ sub get_tilltalsnamn {
     # Split the code into parts
     my @parts = split //, $code;
     foreach my $part ( @parts ) {
-        # Add each part identified in the code to the tilltalname
+        # Add each part identified in the code to the tilltalsnamn
         $tilltal .= $names[ $part - 1 ];
     }
+
+    # Make sure we return early if we do not have a tilltalsnamn
+    return $first unless $tilltal;
 
     # Remove any trailing space or dash (if "A-B" only wants to keep A)
     $tilltal =~ s/[ -]$//g;
