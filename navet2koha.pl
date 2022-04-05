@@ -260,11 +260,6 @@ sub _process_borrower {
         my $is_changed = 0;
         foreach my $key ( sort keys %{ $config->{ 'patronmap' } } ) {
 
-            # Check if Fornamn (firstname) needs to be reduced to Tilltalsnamn (preferred name)
-            if ( defined $config->{'use_tilltalsnamn'} && $config->{'use_tilltalsnamn'} == 1 ) {
-                $node->findvalue( './Personpost/Namn/Fornamn' ) = Util::get_tilltalsnamn(  );
-            }
-
             my $navet_value;
             if ( ref $config->{ 'patronmap' }->{ $key } eq 'ARRAY' ) {
                 foreach my $element ( @{ $config->{ 'patronmap' }->{ $key } } ) {
@@ -276,6 +271,11 @@ sub _process_borrower {
                 }
             } else {
                 $navet_value = $node->findvalue( $config->{ 'patronmap' }->{ $key } );
+            }
+
+            # Check if Fornamn (firstname) needs to be reduced to Tilltalsnamn (preferred name)
+            if ( $key eq 'firstname' && defined $config->{'use_tilltalsnamn'} && $config->{'use_tilltalsnamn'} == 1 ) {
+                $navet_value = Util::get_tilltalsnamn( $node->findvalue( './Personpost/Namn/Fornamn' ), $node->findvalue( './Personpost/Namn/Tilltalsnamnsmarkering' ) );
             }
 
             print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $navet_value . '"' if $config->{'verbose'};
