@@ -209,7 +209,7 @@ sub _process_borrower {
     $socsec =~ s/\s//g;
 
     # Check for letters in the social security number
-    if ( $socsec m/\D/g ) {
+    if ( $socsec =~ m/\D/g ) {
         say $log "FAIL $socsec Contains illegal character" if $config->{'verbose'};
         return undef;
     }
