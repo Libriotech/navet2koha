@@ -208,6 +208,12 @@ sub _process_borrower {
     # Remove any whitespace
     $socsec =~ s/\s//g;
 
+    # Check for letters in the social security number
+    if ( $socsec m/\D/g ) {
+        say $log "FAIL $socsec Contains illegal character" if $config->{'verbose'};
+        return undef;
+    }
+
     # Check the length of the social security number, it should be 12 digits
     if ( length $socsec != 12 ) {
         say $log "FAIL $socsec Wrong length" if $config->{'verbose'};
