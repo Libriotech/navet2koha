@@ -280,9 +280,18 @@ sub _process_borrower {
             }
 
             # Check if Fornamn (firstname) needs to be reduced to Tilltalsnamn (preferred name)
-            if ( $key eq 'firstname' && defined $config->{'use_tilltalsnamn'} && $config->{'use_tilltalsnamn'} == 1 ) {
-                $navet_value = Util::get_tilltalsnamn( $node->findvalue( './Personpost/Namn/Fornamn' ), $node->findvalue( './Personpost/Namn/Tilltalsnamnsmarkering' ) );
-                say $log $node->findvalue( './Personpost/Namn/Tilltalsnamnsmarkering' ) . ' ' . $node->findvalue( './Personpost/Namn/Fornamn' ) . ' => ' . $navet_value if $config->{'verbose'};
+            if ( $key eq 'firstname' &&
+                 defined $config->{'use_tilltalsnamn'} &&
+                 $config->{'use_tilltalsnamn'} == 1 &&
+                 $node->findvalue( './Personpost/Namn/Tilltalsnamnsmarkering' ) ne ''
+            ) {
+                $navet_value = Util::get_tilltalsnamn(
+                    $node->findvalue( './Personpost/Namn/Fornamn' ),
+                    $node->findvalue( './Personpost/Namn/Tilltalsnamnsmarkering' )
+                );
+                say $log $node->findvalue( './Personpost/Namn/Tilltalsnamnsmarkering' ) . ' ' .
+                         $node->findvalue( './Personpost/Namn/Fornamn' ) . ' => ' .
+                         $navet_value if $config->{'verbose'};
             }
 
             print $log $key . ' Koha="' . $borrower->$key . '" <=> Navet="' . $navet_value . '"' if $config->{'verbose'};
