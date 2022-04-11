@@ -26,7 +26,9 @@ socsec_attribute: PNR
 protected_attribute: SKYDDAD
 
 # Only process patrons with the given categorycodes
-categorycodes: "'X','Y'"
+categorycodes:
+    - X
+    - Y
 
 # This map tells the script where in Koha to put the data from Navet. The most
 # interesting thing here are middle names. If you want to store them in the
