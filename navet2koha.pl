@@ -63,7 +63,7 @@ This is an example of data returned from the API:
 # use SOAP::Lite ( +trace => 'all', readable => 1, outputxml => 1, );
 
 use Navet::ePersondata::Personpost;
-use Se::PersonNr;
+# use Se::PersonNr;
 use Getopt::Long;
 use Data::Dumper;
 $Data::Dumper::Sortkeys = 1;
@@ -224,13 +224,15 @@ sub _process_borrower {
 
     # Try to parse the number with Se::PersonNr, this should check that the
     # cheksum is correct, etc
-    my $pnr = new Se::PersonNr( $socsec );
-    if ( ! $pnr->is_valid() ) {
-        say $log "FAIL $socsec Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'verbose'};
-        return undef;
-    } else {
-        say $log "Accepted by Se::PersonNr" if $config->{'verbose'};
-    }
+    # It looks like this module has a 9 year old problem with checking if personnummer
+    # are valid: https://rt.cpan.org/Public/Bug/Display.html?id=83201
+    # my $pnr = new Se::PersonNr( $socsec );
+    # if ( ! $pnr->is_valid() ) {
+    #     say $log "FAIL $socsec Rejected by Se::PersonNr (checksum should be ". $pnr->get_valid() . ")" if $config->{'verbose'};
+    #     return undef;
+    # } else {
+    #     say $log "Accepted by Se::PersonNr" if $config->{'verbose'};
+    # }
 
     # If we got this far, try to get the actual data from Navet
     my $node;
