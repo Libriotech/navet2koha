@@ -187,23 +187,33 @@ sub _process_borrower {
     }
 
     ## Check the social security number makes sense
+    my $socsec;
 
-    # Get the social security attribute
-    my $socsec_attr = Koha::Patron::Attributes->search({
-        'borrowernumber' => $borrower->borrowernumber,
-        'code'           => $config->{ 'socsec_attribute' },
-    });
+    if ( defined $config->{'socsec_attribute'} && $config->{'socsec_attribute'} ne '' ) {
 
-    # Check that we got an attribute
-    unless ( $socsec_attr && $socsec_attr->count ) {
-        say $log "Personnummer not found" if $config->{'verbose'};
-        return undef;
+        # Get the social security attribute
+        my $socsec_attr = Koha::Patron::Attributes->search({
+            'borrowernumber' => $borrower->borrowernumber,
+            'code'           => $config->{ 'socsec_attribute' },
+        });
+
+        # Check that we got an attribute
+        unless ( $socsec_attr && $socsec_attr->count ) {
+            say $log "Personnummer not found" if $config->{'verbose'};
+            return undef;
+        } else {
+            say $log "Personnummer found" if $config->{'verbose'};
+        }
+
+        # Extract the literal social security number
+        $socsec = $socsec_attr->next->attribute;
+
     } else {
-        say $log "Personnummer found" if $config->{'verbose'};
-    }
 
-    # Extract the literal social security number
-    my $socsec = $socsec_attr->next->attribute;
+        # Default: Use the userid as social security number
+        $socsec = $borrower->userid;
+
+    }
 
     # Remove any whitespace
     $socsec =~ s/\s//g;
