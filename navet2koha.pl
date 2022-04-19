@@ -321,7 +321,7 @@ sub _process_borrower {
 
         # Only save if we have some changes
         if ( $is_changed == 1 ) {
-            say $log "Going to update borrower" if $config->{'verbose'};
+            say $log "Going to update borrower with borrowernumber=" . $borrower->borrowernumber if $config->{'verbose'};
             if ( $test_mode == 0 ) {
                 $borrower->store;
             } else {
