@@ -105,6 +105,9 @@ if ( defined $config->{'logdir'} ) {
     my $filename = 'navet2koha-' . $dt->ymd('-') . 'T' . $dt->hms('') . '.log';
     my $logpath = $config->{'logdir'} . '/' . $filename;
     open( $log, '>>', $logpath ) or die "Could not open file '$logpath' $!";
+} elsif ( defined $config->{'logfile'} ) {
+    my $logpath = $config->{'logfile'};
+    open( $log, '>>', $logpath ) or die "Could not open file '$logpath' $!";
 }
 
 say $log "!!! Running in test mode, no data in Koha will be changed/updated!" if $test_mode && $config->{'verbose'};

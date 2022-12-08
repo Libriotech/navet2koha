@@ -12,6 +12,11 @@ BestallningsId:  00001234-FO01-1234
 # Scripts will write logs to this location
 logdir: /etc/koha/sites/mykoha/navet2koha/
 
+# If you want to write logs to the standard Koha log location you can comment
+# "logdir" above, and uncomment the line below. Replace "mykoha" with the name
+# of your instance:
+# logfile: /var/log/koha/mykoha/navet2koha-mykoha.log
+
 # As a default, the script will use the "borrowers.userid" field in Koha as the
 # personnummer/social security number. If you want to use an "extended patron
 # attribute" instead, give the name of the attribute here.
