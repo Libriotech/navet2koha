@@ -8,11 +8,11 @@ Sync patron data from Navet to Koha, based on personnummer (social security numb
 
 =head2 PREREQUISITES
 
-This module: https://gitlab.lub.lu.se/modules/Navet-ePersondata
+This module: https://github.com/lunduniversitylibrary/Navet-ePersondata
 
 To install:
 
- $ git clone https://gitlab.lub.lu.se/modules/Navet-ePersondata.git
+ $ git clone https://github.com/lunduniversitylibrary/Navet-ePersondata.git
  $ cd Navet-ePersondata
  $ sudo cpanm .
 
