@@ -36,14 +36,29 @@ die "Usage: $0 </path/to/navet-config.yaml> <personnr>" unless $ARGV[0] && $ARGV
 my $config = LoadFile( $ARGV[0] );
 $config->{'verbose'} = 1;
 
-my $ep = Navet::ePersondata::Personpost->new(
+my $ep;
+if ( defined $config->{ 'proxy_personpost' } ) {
 
-    pkcs12_file     => $config->{ 'pkcs12_file' },
-    pkcs12_password => $config->{ 'pkcs12_password' },
-    OrgNr           => $config->{ 'OrgNr' },
-    BestallningsId  => $config->{ 'BestallningsId' },
+	$ep = Navet::ePersondata::Personpost->new(
+		soap_options => {
+		    proxy => $config->{ 'proxy_personpost' },
+		},
+		pkcs12_file     => $config->{ 'pkcs12_file' },
+		pkcs12_password => $config->{ 'pkcs12_password' },
+		OrgNr           => $config->{ 'OrgNr' },
+		BestallningsId  => $config->{ 'BestallningsId' },
+	);
 
-);
+} else {
+
+	$ep = Navet::ePersondata::Personpost->new(
+		pkcs12_file     => $config->{ 'pkcs12_file' },
+		pkcs12_password => $config->{ 'pkcs12_password' },
+		OrgNr           => $config->{ 'OrgNr' },
+		BestallningsId  => $config->{ 'BestallningsId' },
+	);
+
+}
 
 my $node = $ep->find_first({ PersonId => $ARGV[1] });
 

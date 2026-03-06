@@ -9,6 +9,10 @@ pkcs12_password: 1234
 OrgNr:           16123456789012
 BestallningsId:  00001234-FO01-1234
 
+# Set this to run queries against other enpoints than the default, for example the
+# test endpoint.
+# proxy_personpost: https://www2.test.skatteverket.se/na/na_epersondata/V2/personpostXML
+
 # Scripts will write logs to this location
 logdir: /etc/koha/sites/mykoha/navet2koha/
 
