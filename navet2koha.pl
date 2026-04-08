@@ -112,16 +112,29 @@ if ( defined $config->{'logdir'} ) {
 
 say $log "!!! Running in test mode, no data in Koha will be changed/updated!" if $test_mode && $config->{'verbose'};
 
-my $ep = Navet::ePersondata::Personpost->new(
-    # Set proxy to test service instead of production 
-#    soap_options => {
-#        proxy => 'https://www2.test.skatteverket.se/na/na_epersondata/V2/personpostXML'
-#    },
-    pkcs12_file     => $config->{ 'pkcs12_file' },
-    pkcs12_password => $config->{ 'pkcs12_password' },
-    OrgNr           => $config->{ 'OrgNr' },
-    BestallningsId  => $config->{ 'BestallningsId' },
-);
+my $ep;
+if ( defined $config->{ 'proxy_personpost' } ) {
+
+	$ep = Navet::ePersondata::Personpost->new(
+		soap_options => {
+		    proxy => $config->{ 'proxy_personpost' },
+		},
+		pkcs12_file     => $config->{ 'pkcs12_file' },
+		pkcs12_password => $config->{ 'pkcs12_password' },
+		OrgNr           => $config->{ 'OrgNr' },
+		BestallningsId  => $config->{ 'BestallningsId' },
+	);
+
+} else {
+
+	$ep = Navet::ePersondata::Personpost->new(
+		pkcs12_file     => $config->{ 'pkcs12_file' },
+		pkcs12_password => $config->{ 'pkcs12_password' },
+		OrgNr           => $config->{ 'OrgNr' },
+		BestallningsId  => $config->{ 'BestallningsId' },
+	);
+
+}
 
 # Turn a list of borrowernumbers into a list of borrowers
 if ( $borrowernumbers ) {
